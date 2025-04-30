@@ -28,28 +28,33 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
+	// Чтение JSON
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&task); err != nil {
 		writeJSON(w, map[string]string{"error": "Ошибка чтения JSON: " + err.Error()})
 		return
 	}
 
+	// Проверка Title
 	if task.Title == "" {
 		writeJSON(w, map[string]string{"error": "Не указан заголовок задачи"})
 		return
 	}
 
+	// Проверка и обработка даты
 	if err := checkDate(&task); err != nil {
 		writeJSON(w, map[string]string{"error": err.Error()})
 		return
 	}
 
+	// Добавление задачи в базу
 	id, err := db.AddTask(&task)
 	if err != nil {
 		writeJSON(w, map[string]string{"error": "Ошибка добавления в БД: " + err.Error()})
 		return
 	}
 
+	// Успешный ответ
 	writeJSON(w, map[string]string{"id": strconv.FormatInt(id, 10)})
 }
 
@@ -97,7 +102,7 @@ func editTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, map[string]string{})
+	writeJSON(w, map[string]string{}) // пустой JSON — успешное обновление
 }
 
 func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -116,8 +121,9 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func checkDate(task *db.Task) error {
-	now := time.Now().Truncate(24 * time.Hour)
+	now := time.Now()
 
+	// Если дата пустая — подставляем сегодня
 	if task.Date == "" {
 		task.Date = now.Format(dateFormat)
 	}
@@ -128,16 +134,18 @@ func checkDate(task *db.Task) error {
 	}
 
 	if task.Repeat != "" {
+		// Проверка правила повторения
 		next, err := NextDate(now, task.Date, task.Repeat)
 		if err != nil {
 			return errors.New("Некорректное правило повторения")
 		}
-
-		if parsedDate.Before(now) {
+		// Если дата в прошлом, подставляем следующую
+		if now.After(parsedDate) {
 			task.Date = next
 		}
 	} else {
-		if parsedDate.Before(now) {
+		// Если правило пустое и дата в прошлом
+		if now.After(parsedDate) {
 			task.Date = now.Format(dateFormat)
 		}
 	}
@@ -147,16 +155,5 @@ func checkDate(task *db.Task) error {
 
 func writeJSON(w http.ResponseWriter, data any) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
-	if m, ok := data.(map[string]string); ok {
-		if _, exists := m["error"]; exists {
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			w.WriteHeader(http.StatusOK)
-		}
-	} else {
-		w.WriteHeader(http.StatusOK)
-	}
-
-	_ = json.NewEncoder(w).Encode(data)
+	json.NewEncoder(w).Encode(data)
 }

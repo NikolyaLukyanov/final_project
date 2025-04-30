@@ -17,8 +17,10 @@ func Run() error {
 		}
 	}
 
+	// Регистрируем API обработчики
 	api.Init()
 
+	http.Handle("/", http.FileServer(http.Dir("web")))
 	fmt.Printf("Сервер запущен на порту %d\n", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }

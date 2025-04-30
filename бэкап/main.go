@@ -6,15 +6,12 @@ import (
 
 	"go1f/pkg/db"
 	"go1f/pkg/server"
-
-	"github.com/joho/godotenv"
 )
 
-const defaultDBFile = "scheduler.db"
-
 func main() {
-	dbFile := defaultDBFile
-	godotenv.Load()
+	dbFile := "scheduler.db"
+
+	// Поддержка переменной окружения TODO_DBFILE
 	if envPath := os.Getenv("TODO_DBFILE"); envPath != "" {
 		dbFile = envPath
 	}
@@ -22,7 +19,7 @@ func main() {
 	if err := db.Init(dbFile); err != nil {
 		log.Fatalf("Ошибка инициализации базы данных: %v", err)
 	}
-	defer db.Close()
+
 	if err := server.Run(); err != nil {
 		log.Fatalf("Ошибка запуска сервера: %v", err)
 	}

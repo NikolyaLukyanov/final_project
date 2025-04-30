@@ -9,7 +9,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtKey = []byte("super-secret")
+var (
+	jwtKey     = []byte("super-secret")
+	pass       = os.Getenv("TODO_PASSWORD") // читаем один раз при старте
+	cookieName = "token"
+)
 
 func signinHandler(w http.ResponseWriter, r *http.Request) {
 	var body struct {
@@ -17,29 +21,28 @@ func signinHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeJSON(w, map[string]string{"error": "Ошибка чтения запроса"})
+		http.Error(w, "Ошибка чтения запроса", http.StatusBadRequest)
 		return
 	}
 
-	expected := os.Getenv("TODO_PASSWORD")
-	if expected == "" || body.Password != expected {
-		writeJSON(w, map[string]string{"error": "Неверный пароль"})
+	if pass == "" || body.Password != pass {
+		http.Error(w, "Неверный пароль", http.StatusUnauthorized)
 		return
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"hash": body.Password,
+		"hash": pass,
 		"exp":  time.Now().Add(8 * time.Hour).Unix(),
 	})
 
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": "Ошибка генерации токена"})
+		http.Error(w, "Ошибка генерации токена", http.StatusInternalServerError)
 		return
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "token",
+		Name:     cookieName,
 		Value:    tokenString,
 		Path:     "/",
 		Expires:  time.Now().Add(8 * time.Hour),
@@ -47,18 +50,18 @@ func signinHandler(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 	})
 
-	writeJSON(w, map[string]string{"token": tokenString})
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
 }
 
 func auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		pass := os.Getenv("TODO_PASSWORD")
 		if pass == "" {
 			next(w, r)
 			return
 		}
 
-		cookie, err := r.Cookie("token")
+		cookie, err := r.Cookie(cookieName)
 		if err != nil {
 			http.Error(w, "Authentication required", http.StatusUnauthorized)
 			return

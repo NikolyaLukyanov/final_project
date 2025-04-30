@@ -6,12 +6,10 @@ import (
 )
 
 func Init() {
-	http.HandleFunc("/api/signin", signinHandler)
 	http.HandleFunc("/api/nextdate", nextDateHandler)
-	http.HandleFunc("/api/task", auth(taskHandler))
-	http.HandleFunc("/api/tasks", auth(tasksHandler))
-	http.HandleFunc("/api/task/done", auth(doneHandler))
-	http.Handle("/", http.FileServer(http.Dir("web")))
+	http.HandleFunc("/api/task", taskHandler)
+	http.HandleFunc("/api/tasks", tasksHandler)
+	http.HandleFunc("/api/task/done", doneHandler)
 }
 
 func nextDateHandler(w http.ResponseWriter, r *http.Request) {
