@@ -3,14 +3,22 @@ package api
 import (
 	"net/http"
 	"time"
+
+	"go1f/pkg/db"
 )
 
-func Init() {
+func NewApp(storage *db.Storage) *App {
+	return &App{Storage: storage}
+}
+
+func (a *App) Init() {
 	http.HandleFunc("/api/signin", signinHandler)
 	http.HandleFunc("/api/nextdate", nextDateHandler)
-	http.HandleFunc("/api/task", auth(taskHandler))
-	http.HandleFunc("/api/tasks", auth(tasksHandler))
-	http.HandleFunc("/api/task/done", auth(doneHandler))
+
+	http.HandleFunc("/api/task", auth(a.taskHandler))
+	http.HandleFunc("/api/tasks", auth(a.tasksHandler))
+	http.HandleFunc("/api/task/done", auth(a.doneHandler))
+
 	http.Handle("/", http.FileServer(http.Dir("web")))
 }
 

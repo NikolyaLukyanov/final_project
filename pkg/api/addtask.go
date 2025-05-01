@@ -10,22 +10,26 @@ import (
 	"go1f/pkg/db"
 )
 
-func taskHandler(w http.ResponseWriter, r *http.Request) {
+type App struct {
+	Storage *db.Storage
+}
+
+func (a *App) taskHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		addTaskHandler(w, r)
+		a.addTaskHandler(w, r)
 	case http.MethodPut:
-		editTaskHandler(w, r)
+		a.editTaskHandler(w, r)
 	case http.MethodGet:
-		getTaskHandler(w, r)
+		a.getTaskHandler(w, r)
 	case http.MethodDelete:
-		deleteTaskHandler(w, r)
+		a.deleteTaskHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func addTaskHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	decoder := json.NewDecoder(r.Body)
@@ -44,7 +48,7 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := db.AddTask(&task)
+	id, err := a.Storage.AddTask(&task)
 	if err != nil {
 		writeJSON(w, map[string]string{"error": "Ошибка добавления в БД: " + err.Error()})
 		return
@@ -53,14 +57,14 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{"id": strconv.FormatInt(id, 10)})
 }
 
-func getTaskHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		writeJSON(w, map[string]string{"error": "Не указан идентификатор"})
 		return
 	}
 
-	task, err := db.GetTask(id)
+	task, err := a.Storage.GetTask(id)
 	if err != nil {
 		writeJSON(w, map[string]string{"error": "Задача не найдена"})
 		return
@@ -69,7 +73,7 @@ func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, task)
 }
 
-func editTaskHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) editTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
@@ -92,7 +96,7 @@ func editTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.UpdateTask(&task); err != nil {
+	if err := a.Storage.UpdateTask(&task); err != nil {
 		writeJSON(w, map[string]string{"error": err.Error()})
 		return
 	}
@@ -100,14 +104,14 @@ func editTaskHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{})
 }
 
-func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		writeJSON(w, map[string]string{"error": "Не указан ID задачи"})
 		return
 	}
 
-	if err := db.DeleteTask(id); err != nil {
+	if err := a.Storage.DeleteTask(id); err != nil {
 		writeJSON(w, map[string]string{"error": "Ошибка удаления задачи"})
 		return
 	}

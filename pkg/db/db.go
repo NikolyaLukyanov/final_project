@@ -8,8 +8,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var DB *sql.DB
-
 const schema = `
 CREATE TABLE scheduler (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,8 +19,11 @@ CREATE TABLE scheduler (
 CREATE INDEX date_index ON scheduler(date);
 `
 
-func Init(dbFile string) error {
+type Storage struct {
+	DB *sql.DB
+}
 
+func (s *Storage) Init(dbFile string) error {
 	_, err := os.Stat(dbFile)
 	install := os.IsNotExist(err)
 
@@ -35,7 +36,7 @@ func Init(dbFile string) error {
 		return fmt.Errorf("ошибка соединения с базой: %w", err)
 	}
 
-	DB = db
+	s.DB = db
 
 	if install {
 		if _, err = db.Exec(schema); err != nil {
@@ -46,9 +47,9 @@ func Init(dbFile string) error {
 	return nil
 }
 
-func Close() error {
-	if DB != nil {
-		return DB.Close()
+func (s *Storage) Close() error {
+	if s.DB != nil {
+		return s.DB.Close()
 	}
 	return nil
 }

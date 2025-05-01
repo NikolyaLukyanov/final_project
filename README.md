@@ -39,6 +39,11 @@ go run main.go
 ### 🧪 Запуск тестов
 
 Перед запуском тестов укажите актуальный JWT-токен в `tests/settings.go`, если включена аутентификация:
+```bash
+curl -X POST http://localhost:7540/api/signin \
+  -H "Content-Type: application/json" \
+  -d '{"password":"12345"}'
+```
 
 ```go
 var Token = "ваш токен из /api/signin"

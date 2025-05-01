@@ -9,7 +9,7 @@ import (
 	"go1f/pkg/api"
 )
 
-func Run() error {
+func Run(app *api.App) error {
 	port := 7540
 	if envPort := os.Getenv("TODO_PORT"); envPort != "" {
 		if p, err := strconv.Atoi(envPort); err == nil {
@@ -17,7 +17,7 @@ func Run() error {
 		}
 	}
 
-	api.Init()
+	app.Init() // Инициализация маршрутов
 
 	fmt.Printf("Сервер запущен на порту %d\n", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)

@@ -11,7 +11,6 @@ import (
 
 var (
 	jwtKey     = []byte("super-secret")
-	pass       = os.Getenv("TODO_PASSWORD") // читаем один раз при старте
 	cookieName = "token"
 )
 
@@ -25,13 +24,14 @@ func signinHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if pass == "" || body.Password != pass {
+	expected := os.Getenv("TODO_PASSWORD") // Читается каждый раз — но после godotenv.Load()
+	if expected == "" || body.Password != expected {
 		http.Error(w, "Неверный пароль", http.StatusUnauthorized)
 		return
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"hash": pass,
+		"hash": expected,
 		"exp":  time.Now().Add(8 * time.Hour).Unix(),
 	})
 
@@ -51,12 +51,13 @@ func signinHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
+	_ = json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
 }
 
 func auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if pass == "" {
+		expected := os.Getenv("TODO_PASSWORD")
+		if expected == "" {
 			next(w, r)
 			return
 		}
@@ -77,7 +78,7 @@ func auth(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok || claims["hash"] != pass {
+		if !ok || claims["hash"] != expected {
 			http.Error(w, "Access denied", http.StatusUnauthorized)
 			return
 		}

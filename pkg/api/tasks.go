@@ -11,10 +11,12 @@ type TasksResp struct {
 	Tasks []*db.Task `json:"tasks"`
 }
 
-func tasksHandler(w http.ResponseWriter, r *http.Request) {
+const maxTasksLimit = 50
+
+func (a *App) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	search := strings.TrimSpace(r.URL.Query().Get("search"))
 
-	tasks, err := db.Tasks(50, search)
+	tasks, err := a.Storage.Tasks(maxTasksLimit, search)
 	if err != nil {
 		writeJSON(w, map[string]string{"error": err.Error()})
 		return

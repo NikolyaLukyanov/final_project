@@ -15,21 +15,21 @@ type Task struct {
 	Repeat  string `json:"repeat"`
 }
 
-func AddTask(task *Task) (int64, error) {
+func (s *Storage) AddTask(task *Task) (int64, error) {
 	query := `
 	INSERT INTO scheduler (date, title, comment, repeat)
 	VALUES (?, ?, ?, ?)
 	`
-	res, err := DB.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
+	res, err := s.DB.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
 	if err != nil {
 		return 0, err
 	}
 	return res.LastInsertId()
 }
 
-func GetTask(id string) (*Task, error) {
+func (s *Storage) GetTask(id string) (*Task, error) {
 	query := `SELECT id, date, title, comment, repeat FROM scheduler WHERE id = ?`
-	row := DB.QueryRow(query, id)
+	row := s.DB.QueryRow(query, id)
 
 	var t Task
 	err := row.Scan(&t.ID, &t.Date, &t.Title, &t.Comment, &t.Repeat)
@@ -39,9 +39,9 @@ func GetTask(id string) (*Task, error) {
 	return &t, nil
 }
 
-func UpdateTask(task *Task) error {
+func (s *Storage) UpdateTask(task *Task) error {
 	query := `UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?`
-	res, err := DB.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
+	res, err := s.DB.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
 	if err != nil {
 		return err
 	}
@@ -55,24 +55,24 @@ func UpdateTask(task *Task) error {
 	return nil
 }
 
-func Tasks(limit int, search string) ([]*Task, error) {
+func (s *Storage) Tasks(limit int, search string) ([]*Task, error) {
 	var rows *sql.Rows
 	var err error
 
 	search = strings.TrimSpace(search)
 	if search == "" {
 		query := `SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT ?`
-		rows, err = DB.Query(query, limit)
+		rows, err = s.DB.Query(query, limit)
 	} else if parsedDate, errParse := time.Parse("02.01.2006", search); errParse == nil {
 		dateStr := parsedDate.Format("20060102")
 		query := `SELECT id, date, title, comment, repeat FROM scheduler WHERE date = ? ORDER BY date LIMIT ?`
-		rows, err = DB.Query(query, dateStr, limit)
+		rows, err = s.DB.Query(query, dateStr, limit)
 	} else {
 		searchLike := "%" + search + "%"
 		query := `SELECT id, date, title, comment, repeat FROM scheduler 
 				  WHERE title LIKE ? OR comment LIKE ?
 				  ORDER BY date LIMIT ?`
-		rows, err = DB.Query(query, searchLike, searchLike, limit)
+		rows, err = s.DB.Query(query, searchLike, searchLike, limit)
 	}
 
 	if err != nil {
@@ -93,8 +93,8 @@ func Tasks(limit int, search string) ([]*Task, error) {
 	return tasks, rows.Err()
 }
 
-func DeleteTask(id string) error {
-	res, err := DB.Exec("DELETE FROM scheduler WHERE id = ?", id)
+func (s *Storage) DeleteTask(id string) error {
+	res, err := s.DB.Exec("DELETE FROM scheduler WHERE id = ?", id)
 	if err != nil {
 		return err
 	}
@@ -108,9 +108,9 @@ func DeleteTask(id string) error {
 	return nil
 }
 
-func UpdateDate(next, id string) error {
+func (s *Storage) UpdateDate(next, id string) error {
 	query := `UPDATE scheduler SET date = ? WHERE id = ?`
-	res, err := DB.Exec(query, next, id)
+	res, err := s.DB.Exec(query, next, id)
 	if err != nil {
 		return err
 	}
