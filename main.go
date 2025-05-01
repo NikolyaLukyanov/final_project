@@ -16,7 +16,6 @@ const defaultPort = "7540"
 
 func main() {
 	_ = godotenv.Load()
-	log.Println("TODO_PASSWORD:", os.Getenv("TODO_PASSWORD"))
 
 	dbFile := os.Getenv("TODO_DBFILE")
 	if dbFile == "" {
